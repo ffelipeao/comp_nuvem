@@ -2,13 +2,15 @@
 
 Computação em Nuvem · 29/09/2026 · Prof. Felipe
 
+> **Idioma da console:** os nomes de telas, campos e botões aparecem primeiro em português e, entre parênteses, em inglês. Exemplo: **Executar instâncias (Launch instances)**.
+
 ## Objetivo da aula
 
 Nesta aula você vai criar um servidor Linux (Ubuntu) na AWS com a menor configuração possível, acessá-lo por SSH, praticar comandos básicos e instalar Apache e PostgreSQL. **Nada disso fica exposto na internet**, e a máquina é desligada no final.
 
 **Pré-requisitos**
 
-- Conta AWS no **plano gratuito**, com MFA e **Zero spend budget** ativos (veja o tutorial de S3, Parte 3).
+- Conta AWS no **plano gratuito**, com MFA e **Orçamento de gasto zero (Zero spend budget)** ativos (veja o tutorial de S3, Parte 3).
 - Região **us-east-1 (Norte da Virgínia)**, a mesma das aulas anteriores.
 - Terminal no seu computador: **PowerShell** (Windows 10/11 já tem o comando `ssh`), **Terminal** (Mac/Linux) ou o **Git Bash**.
 
@@ -16,7 +18,7 @@ Nesta aula você vai criar um servidor Linux (Ubuntu) na AWS com a menor configu
 
 | Regra | Por quê |
 | --- | --- |
-| Use **apenas** tipo de instância com o selo **Free tier eligible** (recomendado: `t3.micro`) | Tipos maiores consomem os créditos muito mais rápido |
+| Use **apenas** tipo de instância com o selo **Qualificado para o nível gratuito (Free tier eligible)** (recomendado: `t3.micro`) | Tipos maiores consomem os créditos muito mais rápido |
 | Disco de **8 GiB gp3** (o padrão) e **uma** instância por aluno | O gratuito cobre até 30 GiB de EBS por mês somando todos os discos |
 | **Não** crie Elastic IP, Load Balancer, NAT Gateway nem RDS nesta aula | São cobrados por hora, mesmo parados |
 | Libere no firewall **só a porta 22 (SSH) para o seu IP** | Apache e PostgreSQL ficam acessíveis apenas de dentro da máquina |
@@ -29,30 +31,30 @@ Nesta aula você vai criar um servidor Linux (Ubuntu) na AWS com a menor configu
 Você vai lançar uma máquina Ubuntu `t3.micro` com 8 GiB de disco e acesso SSH liberado só para o seu IP.
 
 1. No console, confirme a região **us-east-1** no canto superior direito.
-2. Pesquise **EC2** na barra do topo → **Instances** → **Launch instances**.
+2. Pesquise **EC2** na barra do topo → **Instâncias (Instances)** → **Executar instâncias (Launch instances)**.
 3. Preencha a página conforme a tabela:
 
 | Campo | Valor | Observação |
 | --- | --- | --- |
-| **Name** | `linux-seunome` | Ex.: `linux-maria` |
-| **Application and OS Images (AMI)** | **Ubuntu Server 24.04 LTS**, arquitetura **64-bit (x86)** | Deve exibir **Free tier eligible** |
-| **Instance type** | **t3.micro** | 2 vCPU, 1 GiB de RAM; confira o selo **Free tier eligible** |
-| **Key pair (login)** | **Create new key pair** → nome `chave-seunome`, tipo **ED25519**, formato **.pem** | O arquivo baixa **uma única vez**; guarde-o bem |
-| **Network settings** → **Edit** | VPC padrão; **Auto-assign public IP: Enable** | Necessário para o SSH |
-| **Firewall (security groups)** | **Create security group** → nome `sg-linux-seunome` | |
-| Regra de entrada | **SSH, porta 22, Source type: My IP** | **Não** use `0.0.0.0/0` (Anywhere) |
+| **Nome (Name)** | `linux-seunome` | Ex.: `linux-maria` |
+| **Imagens de aplicação e sistema operacional — AMI (Application and OS Images)** | **Ubuntu Server 24.04 LTS**, arquitetura **64 bits (x86)** | Deve exibir **Qualificado para o nível gratuito (Free tier eligible)** |
+| **Tipo de instância (Instance type)** | **t3.micro** | 2 vCPU, 1 GiB de RAM; confira o selo **Qualificado para o nível gratuito (Free tier eligible)** |
+| **Par de chaves — login (Key pair — login)** | **Criar novo par de chaves (Create new key pair)** → nome `chave-seunome`, tipo **ED25519**, formato **.pem** | O arquivo baixa **uma única vez**; guarde-o bem |
+| **Configurações de rede (Network settings)** → **Editar (Edit)** | VPC padrão; **Atribuir IP público automaticamente: Habilitar (Auto-assign public IP: Enable)** | Necessário para o SSH |
+| **Firewall — grupos de segurança (Firewall — security groups)** | **Criar grupo de segurança (Create security group)** → nome `sg-linux-seunome` | |
+| Regra de entrada | **SSH, porta 22, tipo de origem: Meu IP (Source type: My IP)** | **Não** use `0.0.0.0/0`, isto é, **Qualquer lugar (Anywhere)** |
 | Outras regras (HTTP/HTTPS) | **Deixe desmarcadas** | O Apache não ficará exposto |
-| **Configure storage** | **8 GiB, gp3** | Não aumente |
-| **Advanced details** | Deixe o padrão | **Shutdown behavior: Stop** (padrão) |
+| **Configurar armazenamento (Configure storage)** | **8 GiB, gp3** | Não aumente |
+| **Detalhes avançados (Advanced details)** | Deixe o padrão | **Comportamento de desligamento: Parar (Shutdown behavior: Stop)** (padrão) |
 
-4. Confira o painel **Summary** à direita: **Number of instances: 1**.
-5. Clique em **Launch instance** → **View all instances**.
-6. Aguarde **Instance state: Running** e **Status check: 3/3 checks passed** (1 a 3 minutos).
-7. Clique na instância e copie o **Public IPv4 address** (ex.: `3.85.120.44`).
+4. Confira o painel **Resumo (Summary)** à direita: **Número de instâncias: 1 (Number of instances: 1)**.
+5. Clique em **Executar instância (Launch instance)** → **Visualizar todas as instâncias (View all instances)**.
+6. Aguarde **Estado da instância: Em execução (Instance state: Running)** e **Verificações de status: 3/3 verificações aprovadas (Status check: 3/3 checks passed)** (1 a 3 minutos).
+7. Clique na instância e copie o **Endereço IPv4 público (Public IPv4 address)** (ex.: `3.85.120.44`).
 
 > **A chave `.pem` é a senha do seu servidor.** Não envie no grupo da turma, não coloque no GitHub e não salve em pasta compartilhada. Se perder, não há como baixar de novo.
 
-**Mudou de rede (casa → faculdade)?** O “My IP” muda. Em **Security Groups** → `sg-linux-seunome` → **Edit inbound rules** → na regra SSH, selecione **My IP** de novo → **Save rules**.
+**Mudou de rede (casa → faculdade)?** O **Meu IP (My IP)** muda. Em **Grupos de segurança (Security Groups)** → `sg-linux-seunome` → **Editar regras de entrada (Edit inbound rules)** → na regra SSH, selecione **Meu IP (My IP)** de novo → **Salvar regras (Save rules)**.
 
 ## Parte 2 — Acessar por SSH
 
@@ -94,9 +96,9 @@ ssh -i ~/.ssh/chave-seunome.pem ubuntu@3.85.120.44
 
 **2.3 Alternativa sem instalar nada: EC2 Instance Connect**
 
-Se o SSH do seu computador estiver bloqueado (rede da faculdade, por exemplo): selecione a instância → **Connect** → aba **EC2 Instance Connect** → usuário `ubuntu` → **Connect**. Abre um terminal no navegador.
+Se o SSH do seu computador estiver bloqueado (rede da faculdade, por exemplo): selecione a instância → **Conectar (Connect)** → aba **EC2 Instance Connect** → usuário `ubuntu` → **Conectar (Connect)**. Abre um terminal no navegador.
 
-> O Instance Connect usa IPs da própria AWS. Se ele falhar com a regra **My IP**, adicione temporariamente no Security Group a origem indicada pelo console na tela de erro e remova-a ao final da aula.
+> O Instance Connect usa IPs da própria AWS. Se ele falhar com a regra **Meu IP (My IP)**, adicione temporariamente no **grupo de segurança (Security Group)** a origem indicada pelo console na tela de erro e remova-a ao final da aula.
 
 **2.4 Primeira tarefa no servidor: atualizar o sistema**
 
@@ -374,17 +376,17 @@ Parar os serviços não basta: o que gera consumo é a **instância ligada**. Ao
 
 | Ação no console | O que acontece | Quando usar |
 | --- | --- | --- |
-| **Stop instance** (parar) | Desliga a máquina. O disco e seus arquivos continuam. Para de consumir horas de CPU e o IP público é liberado. O disco de 8 GiB continua existindo (dentro dos 30 GiB gratuitos) | **Ao fim de cada aula** |
-| **Start instance** (iniciar) | Liga de novo, com tudo como você deixou. **O IP público muda** | No começo da próxima aula |
-| **Reboot** | Reinicia sem desligar | Raramente necessário |
-| ⚠ **Terminate instance** (encerrar) | **Apaga** a máquina e o disco. Não tem volta | Ao fim da disciplina, ou se quebrar algo e quiser recomeçar |
+| **Parar instância (Stop instance)** | Desliga a máquina. O disco e seus arquivos continuam. Para de consumir horas de CPU e o IP público é liberado. O disco de 8 GiB continua existindo (dentro dos 30 GiB gratuitos) | **Ao fim de cada aula** |
+| **Iniciar instância (Start instance)** | Liga de novo, com tudo como você deixou. **O IP público muda** | No começo da próxima aula |
+| **Reinicializar (Reboot)** | Reinicia sem desligar | Raramente necessário |
+| ⚠ **Encerrar instância (Terminate instance)** | **Apaga** a máquina e o disco. Não tem volta | Ao fim da disciplina, ou se quebrar algo e quiser recomeçar |
 
 **6.1 Parar a instância**
 
 1. Digite `exit` para sair do SSH.
-2. No console: **EC2** → **Instances** → marque `linux-seunome`.
-3. **Instance state** → **Stop instance** → **Stop**.
-4. Aguarde **Instance state: Stopped** antes de fechar o navegador.
+2. No console: **EC2** → **Instâncias (Instances)** → marque `linux-seunome`.
+3. **Estado da instância (Instance state)** → **Parar instância (Stop instance)** → **Parar (Stop)**.
+4. Aguarde **Estado da instância: Interrompida (Instance state: Stopped)** antes de fechar o navegador.
 
 **6.2 Rede de segurança: desligamento automático**
 
@@ -395,25 +397,25 @@ sudo shutdown -h +180     # desliga em 180 minutos (3 horas)
 sudo shutdown -c          # cancela o agendamento, se precisar
 ```
 
-Como o *Shutdown behavior* da instância é **Stop**, desligar pelo Linux equivale a parar pelo console: nada é apagado.
+Como o **Comportamento de desligamento (Shutdown behavior)** da instância é **Parar (Stop)**, desligar pelo Linux equivale a parar pelo console: nada é apagado.
 
 **6.3 Conferir consumo**
 
-- **Billing and Cost Management** → **Free Tier** / **Credits**: mostra quanto dos créditos foi usado.
-- Verifique que não há instâncias **Running** esquecidas em **outras regiões**: o painel **EC2 Global View** (pesquise no topo) lista todas.
-- Confira em **Elastic IPs** e **Volumes** que não há nada além do disco da sua instância.
+- **Faturamento e gerenciamento de custos (Billing and Cost Management)** → **Nível gratuito (Free Tier)** / **Créditos (Credits)**: mostra quanto dos créditos foi usado.
+- Verifique que não há instâncias **Em execução (Running)** esquecidas em **outras regiões**: o painel **Visualização global do EC2 (EC2 Global View)** (pesquise no topo) lista todas.
+- Confira em **IPs elásticos (Elastic IPs)** e **Volumes (Volumes)** que não há nada além do disco da sua instância.
 
 **6.4 Fim da disciplina: remover tudo**
 
-1. **Terminate** a instância (o disco é apagado junto).
-2. Em **Security Groups**, apague `sg-linux-seunome`.
-3. Em **Key Pairs**, apague `chave-seunome` e o arquivo `.pem` do seu computador.
+1. Use **Encerrar instância (Terminate instance)**; o disco é apagado junto.
+2. Em **Grupos de segurança (Security Groups)**, apague `sg-linux-seunome`.
+3. Em **Pares de chaves (Key Pairs)**, apague `chave-seunome` e o arquivo `.pem` do seu computador.
 
 ## Erros comuns
 
 | Sintoma | Causa provável | Como resolver |
 | --- | --- | --- |
-| `Connection timed out` no SSH | Seu IP mudou, instância parada ou IP público antigo | Atualize a regra **My IP** no Security Group; confira **Running** e copie o IP novo |
+| `Connection timed out` no SSH | Seu IP mudou, instância parada ou IP público antigo | Atualize a regra **Meu IP (My IP)** no grupo de segurança; confira **Em execução (Running)** e copie o IP novo |
 | `Permission denied (publickey)` | Usuário errado ou chave errada | Use `ubuntu@` e o `.pem` criado com esta instância |
 | `UNPROTECTED PRIVATE KEY FILE` | Permissões da chave abertas demais | Refaça o passo 2.1 (`chmod 400` ou `icacls`) |
 | `REMOTE HOST IDENTIFICATION HAS CHANGED` | O IP foi reaproveitado por outra máquina | `ssh-keygen -R 3.85.120.44` (com o IP) e conecte de novo |
@@ -425,15 +427,15 @@ Como o *Shutdown behavior* da instância é **Stop**, desligar pelo Linux equiva
 
 ## Checklist da aula
 
-- [ ] Instância `t3.micro` Ubuntu 24.04 com selo **Free tier eligible** e disco de 8 GiB
-- [ ] Security Group só com **SSH (22) para My IP**
+- [ ] Instância `t3.micro` Ubuntu 24.04 com selo **Qualificado para o nível gratuito (Free tier eligible)** e disco de 8 GiB
+- [ ] Grupo de segurança (Security Group) só com **SSH (22) para Meu IP (My IP)**
 - [ ] Acesso por SSH funcionando e sistema atualizado
 - [ ] Exercício de comandos feito (`~/aula-ec2/sobre.txt`)
 - [ ] Apache respondendo `200 OK` em `http://localhost` e escutando só em `127.0.0.1:80`
 - [ ] Banco `aula` com a tabela `alunos` criada no PostgreSQL
 - [ ] Serviços derrubados e subidos com `systemctl` pelo menos uma vez
 - [ ] Serviços parados ao final (`stop` + `disable`)
-- [ ] **Instância em Stopped** no console antes de sair
+- [ ] **Instância Interrompida (Stopped)** no console antes de sair
 
 ## Fontes
 

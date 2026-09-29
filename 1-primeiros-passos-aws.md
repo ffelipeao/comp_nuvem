@@ -4,6 +4,8 @@
 
 *Material introdutório para uso em sala de aula*
 
+> **Idioma da console:** os nomes de telas, campos e botões aparecem primeiro em português e, entre parênteses, em inglês. Exemplo: **Instâncias (Instances)**.
+
 ## Objetivo
 
 Neste tutorial, você aprenderá a:
@@ -69,11 +71,11 @@ Na parte superior existe uma caixa de pesquisa. Ela será uma das ferramentas ma
 
 ### Serviços
 
-Os serviços são organizados em categorias como Compute, Storage, Database, Networking, Security e Developer Tools.
+Os serviços são organizados em categorias como **Computação (Compute)**, **Armazenamento (Storage)**, **Banco de dados (Database)**, **Redes e entrega de conteúdo (Networking & Content Delivery)**, **Segurança, identidade e conformidade (Security, Identity, & Compliance)** e **Ferramentas do desenvolvedor (Developer Tools)**.
 
 ### Região
 
-Na parte superior do Console aparece a Região AWS selecionada. Exemplos: US East (N. Virginia) e South America (São Paulo). Muitos recursos, como instâncias EC2, são regionais. Se você criar um recurso em uma Região e selecionar outra depois, ele poderá não aparecer no painel.
+Na parte superior do Console aparece a Região AWS selecionada. Exemplos: **Leste dos EUA (Norte da Virgínia) (US East — N. Virginia)** e **América do Sul (São Paulo) (South America — São Paulo)**. Muitos recursos, como instâncias EC2, são regionais. Se você criar um recurso em uma Região e selecionar outra depois, ele poderá não aparecer no painel.
 
 Durante as atividades em sala, utilize sempre a Região indicada pelo professor.
 
@@ -83,11 +85,11 @@ No canto superior direito ficam opções relacionadas à conta, segurança e fat
 
 ## 6. Primeiro cuidado: acompanhe seus créditos e custos
 
-Antes de criar servidores, pesquise no Console por “Billing” e conheça as áreas de cobrança, créditos e orçamentos (Budgets).
+Antes de criar servidores, pesquise no Console por **Faturamento e gerenciamento de custos (Billing and Cost Management)** e conheça estas áreas:
 
-- Billing — informações relacionadas à cobrança.
-- Credits — créditos disponíveis na conta.
-- Budgets — acompanhamento de gastos e configuração de alertas.
+- **Faturamento (Billing)** — informações relacionadas à cobrança.
+- **Créditos (Credits)** — créditos disponíveis na conta.
+- **Orçamentos (Budgets)** — acompanhamento de gastos e configuração de alertas.
 
 Regra para nossas aulas: não crie recursos diferentes daqueles solicitados durante a atividade e remova os recursos de teste que não serão mais utilizados.
 
@@ -108,11 +110,11 @@ Fluxo simplificado:
 Internet → EC2 → Servidor Web → Aplicação
 ```
 
-No painel do EC2, observe principalmente Instances, Instance Types, Security Groups, Elastic IPs e Volumes. Não crie uma instância ainda, a menos que seja solicitado na atividade.
+No painel do EC2, observe principalmente **Instâncias (Instances)**, **Tipos de instância (Instance Types)**, **Grupos de segurança (Security Groups)**, **IPs elásticos (Elastic IPs)** e **Volumes (Volumes)**. Não crie uma instância ainda, a menos que seja solicitado na atividade.
 
-## 8. Security Groups — o firewall da AWS
+## 8. Grupos de segurança (Security Groups) — o firewall da AWS
 
-Security Groups controlam o tráfego permitido para recursos como instâncias EC2. Para um servidor Web, portas comuns incluem:
+Grupos de segurança (Security Groups) controlam o tráfego permitido para recursos como instâncias EC2. Para um servidor Web, portas comuns incluem:
 
 | **Porta** | **Serviço** |
 |-----------|-------------|
@@ -194,7 +196,7 @@ Entre no AWS Management Console e, utilizando somente a pesquisa, localize:
 5. VPC
 6. CloudFront
 7. Route 53
-8. Billing and Cost Management
+8. Faturamento e gerenciamento de custos (Billing and Cost Management)
 
 Não crie recursos ainda. O objetivo é aprender a navegar pelo Console e identificar a finalidade de cada serviço.
 
