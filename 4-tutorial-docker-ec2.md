@@ -6,7 +6,7 @@ Computação em Nuvem · Prof. Felipe
 
 Executar uma aplicação com dois containers: um servidor Apache com PHP e um banco PostgreSQL. A página consulta três produtos e permite observar comunicação pela rede Docker, falhas do banco e persistência dos dados após recriar um container.
 
-Reserve aproximadamente 2 horas. Todos os comandos `bash` deste roteiro são executados **no terminal Ubuntu da EC2**, inclusive quando o acesso é feito pelo navegador. Não cole esses comandos no PowerShell do computador.
+Reserve aproximadamente 2 horas. Salvo indicação explícita na opção de acesso pelo navegador do computador, os comandos `bash` deste roteiro são executados **no terminal Ubuntu da EC2**, inclusive quando o acesso é feito pelo navegador. Não cole os comandos da EC2 no PowerShell do computador.
 
 ## Parte 1 — Preparar o ambiente
 
@@ -293,13 +293,70 @@ O mapeamento usa somente o endereço local da EC2. O Apache instalado no host po
 
 **Opcional: visualizar a página no navegador do computador**
 
-Use a chave `.pem` e a regra SSH **Meu IP (My IP)** descritas na aula de EC2. No **terminal do seu computador**, substitua o caminho da chave e `IP_PUBLICO_EC2`:
+Se você já tem a chave `.pem` da aula de EC2, pode usá-la no comando de túnel abaixo. Se não tem essa chave, crie um novo par no computador e autorize a chave pública na instância existente, seguindo estes passos.
+
+**1. Criar as chaves no computador**
+
+No **PowerShell do seu computador (Windows)**, execute:
+
+```powershell
+New-Item -ItemType Directory -Force "$HOME/.ssh" | Out-Null
+ssh-keygen -t ed25519 -C "docker-ec2" -f "$HOME/.ssh/aula-docker-ec2"
+Get-Content "$HOME/.ssh/aula-docker-ec2.pub"
+```
+
+Quando solicitado, defina uma frase secreta para proteger a chave privada e confirme-a. Se o arquivo já existir, não o sobrescreva: use outro nome e ajuste os comandos seguintes. Se `ssh-keygen` não for reconhecido, instale o recurso **Cliente OpenSSH** nas configurações de recursos opcionais do Windows.
+
+No **terminal do computador com macOS ou Linux**, use:
+
+```bash
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+ssh-keygen -t ed25519 -C "docker-ec2" -f ~/.ssh/aula-docker-ec2
+chmod 600 ~/.ssh/aula-docker-ec2
+cat ~/.ssh/aula-docker-ec2.pub
+```
+
+O arquivo `aula-docker-ec2` é a **chave privada**: mantenha-o no computador e não o compartilhe. O arquivo `aula-docker-ec2.pub` é a **chave pública**. Copie a linha inteira exibida, começando por `ssh-ed25519`. A chave criada por esse procedimento não precisa ter extensão `.pem`.
+
+**2. Autorizar a chave pública na EC2**
+
+Abra **Conectar → EC2 Instance Connect** no console AWS, com o usuário `ubuntu`. No **terminal Ubuntu da EC2**, execute:
+
+```bash
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+cat >> ~/.ssh/authorized_keys <<'EOF'
+COLE_AQUI_A_LINHA_COMPLETA_DA_CHAVE_PUBLICA
+EOF
+chmod 600 ~/.ssh/authorized_keys
+```
+
+Antes de executar, substitua `COLE_AQUI_A_LINHA_COMPLETA_DA_CHAVE_PUBLICA` pela linha copiada do arquivo `.pub`, sem quebrá-la em várias linhas. O operador `>>` acrescenta a chave e preserva os acessos existentes. Mantenha a sessão do navegador aberta até testar o túnel. Apenas criar ou importar um par no console AWS não instala a chave em uma instância já existente; é necessário autorizá-la no usuário, conforme a [documentação da AWS sobre adicionar chaves](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/replacing-key-pair.html).
+
+**3. Abrir o túnel no computador**
+
+No grupo de segurança da instância, permita **SSH / TCP / porta 22** com origem **Meu IP (My IP)**, conforme a aula de EC2. Confira o IPv4 público atual da instância. Não é necessário abrir a porta 8080 no grupo de segurança.
+
+No **PowerShell do computador**, para a chave recém-criada, substitua `IP_PUBLICO_EC2` e execute:
+
+```powershell
+ssh -i "$HOME/.ssh/aula-docker-ec2" -o ExitOnForwardFailure=yes -N -L 8080:127.0.0.1:8080 ubuntu@IP_PUBLICO_EC2
+```
+
+No **terminal do computador com macOS ou Linux**, o equivalente é:
+
+```bash
+ssh -i ~/.ssh/aula-docker-ec2 -o ExitOnForwardFailure=yes -N -L 8080:127.0.0.1:8080 ubuntu@IP_PUBLICO_EC2
+```
+
+Se usar a chave `.pem` anterior, informe o caminho dela no lugar da chave nova. Exemplo no PowerShell:
 
 ```powershell
 ssh -i "C:\caminho\chave-seunome.pem" -N -L 8080:127.0.0.1:8080 ubuntu@IP_PUBLICO_EC2
 ```
 
-Mantenha esse terminal aberto e acesse **http://localhost:8080** no navegador local. Se a porta local estiver ocupada, troque apenas o primeiro `8080` por `8081` e abra `http://localhost:8081`. O terminal EC2 Instance Connect no navegador não cria esse túnel para o computador. Para encerrar o túnel, use `Ctrl+C` no terminal local.
+Na primeira conexão, confira a impressão digital da chave do servidor antes de aceitar; se definiu uma frase secreta para sua chave, informe-a quando solicitada. Com `-N`, o terminal fica ocupado sem abrir um prompt remoto: isso é esperado. Mantenha esse terminal aberto e acesse **http://localhost:8080** no navegador local. Se a porta local estiver ocupada, troque apenas o primeiro `8080` por `8081` e abra `http://localhost:8081`. O terminal EC2 Instance Connect no navegador não cria esse túnel para o computador. Para encerrar o túnel, use `Ctrl+C` no terminal local.
 
 ## Parte 7 — Inspecionar e comprovar o acesso de leitura
 
@@ -391,6 +448,153 @@ curl -i http://127.0.0.1:8080/
 **Resultado esperado:** estoque do produto 1 permanece **99** e a página retorna 200. O novo container usa o nome `banco`, que o PHP resolve novamente pela rede. Se uma consulta ocorrer durante a inicialização, repita-a após a prontidão do banco.
 
 As variáveis `POSTGRES_DB`, `POSTGRES_USER` e `POSTGRES_PASSWORD` inicializam um diretório de dados vazio. Alterar `banco.env` não troca a senha de um banco já existente no volume; para isso, use `ALTER ROLE`. O volume preserva os dados ao remover containers, mas não substitui backup e fica no disco da própria EC2.
+
+### Prática complementar — Executar SQL pelo psql no container
+
+Realize esta prática com o container `banco` em execução. Usaremos uma tabela separada, `public.produtos_pratica`, para manter os três produtos da página e o estoque do teste de persistência.
+
+**1. Acessar o banco como administrador**
+
+No **terminal Ubuntu da EC2**, execute:
+
+```bash
+sudo docker exec -it banco psql -U postgres -d loja
+```
+
+Esse comando abre diretamente o cliente `psql` dentro do container `banco`, conectado ao banco `loja` como usuário `postgres`. O prompt deve mudar para `loja=#`. A partir daí, digite os comandos SQL abaixo **dentro do psql**, terminando cada instrução com `;`. Não digite `sudo docker` nesse prompt.
+
+Comandos úteis do próprio `psql` (não precisam de `;`):
+
+```text
+\conninfo
+\du
+\dt public.*
+```
+
+Eles mostram, respectivamente, a conexão atual, os usuários e as tabelas. Neste container da aula, a conexão local usada pelo administrador pode dispensar senha; isso não significa que o usuário da aplicação tenha acesso administrativo.
+
+**2. Criar um usuário e definir sua senha**
+
+Execute uma vez:
+
+```sql
+CREATE USER aluno_sql;
+```
+
+Defina a senha pelo comando do `psql`, que solicita a digitação e a confirmação sem exibi-la:
+
+```text
+\password aluno_sql
+```
+
+Use uma senha exclusivamente didática e guarde-a para o teste de conexão. `CREATE USER` cria um papel com permissão de login; não concede privilégios de administrador. Se o usuário já existir, não repita o `CREATE USER`; use `\password aluno_sql` para definir outra senha, se necessário.
+
+**3. Criar uma tabela**
+
+Ainda como `postgres`, execute:
+
+```sql
+CREATE TABLE public.produtos_pratica (
+    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nome varchar(100) NOT NULL,
+    preco numeric(10,2) NOT NULL CHECK (preco >= 0),
+    estoque integer NOT NULL CHECK (estoque >= 0)
+);
+```
+
+Confira a estrutura:
+
+```text
+\d public.produtos_pratica
+```
+
+Crie a tabela apenas uma vez. Se ela já existir de uma execução anterior, confira sua estrutura e os dados antes de continuar.
+
+**4. Inserir e consultar dados**
+
+```sql
+INSERT INTO public.produtos_pratica (nome, preco, estoque)
+VALUES
+    ('Caderno', 25.90, 10),
+    ('Caneta', 3.50, 30),
+    ('Mochila', 120.00, 5)
+RETURNING *;
+
+SELECT * FROM public.produtos_pratica ORDER BY id;
+```
+
+O banco gera os IDs automaticamente. `RETURNING` mostra as linhas afetadas pelo comando. Repetir esse `INSERT` cria novos registros.
+
+**5. Atualizar dados**
+
+Consulte os IDs e substitua `1` pelo ID do registro que deseja alterar:
+
+```sql
+UPDATE public.produtos_pratica
+SET preco = 27.90, estoque = 15
+WHERE id = 1
+RETURNING *;
+
+SELECT * FROM public.produtos_pratica ORDER BY id;
+```
+
+**6. Excluir dados**
+
+Consulte os IDs e substitua `2` pelo ID do registro que deseja excluir:
+
+```sql
+DELETE FROM public.produtos_pratica
+WHERE id = 2
+RETURNING *;
+
+SELECT * FROM public.produtos_pratica ORDER BY id;
+```
+
+**Atenção:** `UPDATE` e `DELETE` sem `WHERE` afetam todas as linhas da tabela. Por padrão, o `psql` confirma cada comando bem-sucedido automaticamente. Para experimentar uma exclusão e desfazê-la, use uma transação:
+
+```sql
+BEGIN;
+DELETE FROM public.produtos_pratica WHERE id = 1 RETURNING *;
+ROLLBACK;
+SELECT * FROM public.produtos_pratica ORDER BY id;
+```
+
+`ROLLBACK` desfaz a exclusão dessa transação. Use `COMMIT` no lugar dele somente quando quiser confirmar a alteração.
+
+**7. Conceder permissões ao novo usuário**
+
+Ainda como `postgres`, permita que `aluno_sql` consulte e altere apenas a tabela da prática, incluindo o uso da sequência que gera os IDs:
+
+```sql
+GRANT CONNECT ON DATABASE loja TO aluno_sql;
+GRANT USAGE ON SCHEMA public TO aluno_sql;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.produtos_pratica TO aluno_sql;
+GRANT USAGE ON SEQUENCE public.produtos_pratica_id_seq TO aluno_sql;
+```
+
+Saia do `psql`:
+
+```text
+\q
+```
+
+No **terminal Ubuntu da EC2**, conecte como o novo usuário. O parâmetro `-h 127.0.0.1` usa TCP dentro do container, e `-W` solicita a senha definida anteriormente:
+
+```bash
+sudo docker exec -it banco psql -h 127.0.0.1 -U aluno_sql -d loja -W
+```
+
+No prompt `loja=>`, teste:
+
+```sql
+SELECT current_user;
+INSERT INTO public.produtos_pratica (nome, preco, estoque)
+VALUES ('Borracha', 2.00, 20)
+RETURNING *;
+SELECT * FROM public.produtos_pratica ORDER BY id;
+```
+
+Você também pode repetir os exemplos de `UPDATE` e `DELETE` com os IDs desejados nessa tabela. As permissões de `app_leitura` permanecem apenas de consulta na tabela `public.produtos`, como demonstrado na Parte 7. Finalize com `\q` para voltar ao terminal da EC2.
 
 ## Parte 10 — Atividade para entrega
 
